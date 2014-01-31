@@ -1,22 +1,22 @@
 === mailto:staff ===
 Contributors: decafmedia
-Tags: users, email, mail, dashboard
-Requires at least: 2.3.1
-Tested up to: 3.5
-Stable tag: 2.4.2
+Tags: users, email, mail, dashboard, team, authors
+Requires at least: 3.1
+Tested up to: 3.8
+Stable tag: 3.0
 
-*** New version 3.0 upcoming, see changelog! *** Multi-author blogs: Plugin generates mailto links on the dashboard referring to all registered users. Quite handy way of internal staff communication.
+For multi-author blogs: The Plugin generates a mailto link on the dashboard.
 
 == Description ==
 
-Multi-author blogs: Plugin generates mailto links on the dashboard referring to all registered users. Quite handy way of internal staff communication.
+Multi-author blogs: Plugin generates simple mailto links on the dashboard referring to all registered users. Quite handy way of internal staff communication.
 
 **Features:**
 
 * Mailto links can address any of group admins, editors, authors, contributors and subscribers based on current user's role.
 * User roles: Subscribers can address admins only. Contributors can address editors and admins. Authors can address authors, editors and admins. Editors and admins can address all users.
-* Duplicate mail addys are removed.
-* BCC mail if recipients contain subscribers (-> privacy!).
+* Duplicate mail addys get filtered out.
+* BCC mail if recipients contain subscribers (due to privacy concerns!).
 * Multi-language, see [notes](http://wordpress.org/extend/plugins/mailtostaff/other_notes/).
 
 The plugin needs JavaScript enabled to function.
@@ -28,18 +28,16 @@ The plugin needs JavaScript enabled to function.
 
 == Screenshots ==
 
-1. Upcoming version of plugin on WordPress 3.8 dashboard.
-2. Plugin supports not only default user roles but custom roles now.
-3. Mailto link with your staff being addressed directly.
-4. BCC mail if recipients contain subscribers. Privacy FTW!
+1. WP 2.7 (WP 2.8 - 3.2 respectively)
+2. WP 2.6
+3. Default mail
+4. BCC mail if recipients contain subscribers (-> privacy!)
 
 == Changelog ==
 
-= 3.0 (upcoming) =
-* Supports custom roles now.
+= 2.5 (12-30-2013) =
 * WP 3.8 compatibility
-* Doesn't use the activity widget (»Right now«) any longer but comes with a shiny new own widget now.
-* New style, new icons, new code.
+* some cleanup and refactoring
 
 = 2.4.2 (12-30-2012) =
 * WP 3.5 compatibility
@@ -75,3 +73,4 @@ Plugin uses icon stuff from famfamfam's [silk](http://www.famfamfam.com/lab/icon
 == Alternative Plugins? ==
 
 Have a look at [Email Users](http://wordpress.org/extend/plugins/email-users/) or [User Messages](http://wordpress.org/extend/plugins/user-messages/) if you're looking for an internal messaging system instead of simple mailto links.
+

@@ -2,8 +2,8 @@
 /*
 Plugin Name: mailto:staff
 Plugin URI: http://decaf.de/mailto-staff/
-Description: Generates mailto links on the dashboard referring to all user groups of the blog. Quite handy way of internal staff communication on multi-author/team blogs.
-Version: 2.4.2
+Description: Generates mailto link on the dashboard referring to all user groups of the blog. Quite handy way of internal staff communication on multi-author/team blogs.
+Version: 3.0
 Author: DECAF
 Author URI: http://decaf.de
 
@@ -20,261 +20,371 @@ Author URI: http://decaf.de
 */
 
 
-  function mailto_staff_widget() {
-  	mailto('widget');
-  } 
 
-  function add_mailto_staff() {
-    global $wp_version;
-    if (current_user_can('subscriber') && $wp_version >= "2.7") {
-      // subscribers only: add new widget as activity box widget is not available
-      // needs WP widget API implemented with WP 2.7
-  	  wp_add_dashboard_widget('mailto_staff_widget', __('contact'), 'mailto_staff_widget');	
-  	}
-  	else {
-      // default behaviour: add to activity box widget
-      add_action('activity_box_end', 'mailto');    
-  	}
-  } 
+	add_action('wp_dashboard_setup', 'add_mailtostaff_widget');
 
-  add_action('wp_dashboard_setup', 'add_mailto_staff' );
+	function add_mailtostaff_widget() {
+		add_action('admin_head', 'add_mailtostaff_resources');
+		wp_add_dashboard_widget('mailtostaff_widget', 'mailto:staff', 'mailtostaff');
+	}
 
 
 
+	/**
+	 * gets default role for given user based on typical capabilities (see https://core.trac.wordpress.org/ticket/22624).
+	 * default roles are 'administrator', 'editor', 'author', 'contributor' and 'subscriber'.
+	 */
+	function get_default_role_for_user($user = null) {
 
-  function mailto($mode) {
-		global $wpdb, $current_user, $wp_version;
+		// typical caps
+		$capabilities = array(
+			'administrator' => array('edit_users', 'remove_users'),
+			'editor'        => array('edit_others_posts', 'edit_private_posts'),
+			'author'        => array('publish_posts', 'delete_published_posts'),
+			'contributor'   => array('edit_posts', 'delete_posts')
+		);
 
-		/* get user data */
-
-		$admins       = array();
-		$editors      = array();
-		$authors      = array();
-		$contributors = array();
-		$subscribers  = array();
-
-		$user_ids = $wpdb->get_col("SELECT ID FROM $wpdb->users");
-		foreach($user_ids as $user_id) {
-
-			if ($user_id == $current_user->ID) continue; // skip current user
-
-			$user = get_userdata($user_id);
-			$user_level = $user->user_level;
-			$user_email = $user->user_email;
-
-			// admins
-			if ($user_level >= 8 && $user_level <= 10) {
-				$admins[] = $user_email;
-			}
-			// editors
-			if ($user_level >= 5 && $user_level <= 7 && $current_user->user_level >= 1) {
-				$editors[] = $user_email;
-			}
-			// authors
-			if ($user_level >= 2 && $user_level <= 4 && $current_user->user_level >= 2) {
-				$authors[] = $user_email;
-			}
-			// contributors
-			if ($user_level == 1 && $current_user->user_level >= 5) {
-				$contributors[] = $user_email;
-			}
-			// subscribers
-			if ($user_level == 0 && $current_user->user_level >= 5) {
-				$subscribers[] = $user_email;
+		// loop through caps, find out user role
+		foreach ($capabilities as $k => $role) {
+			foreach ($role as $cap) {
+				if ($user) {
+					// use given user
+					if (user_can($user, $cap)) {
+						return $k;
+					}
+				}
+				else {
+					// use current user
+					if (current_user_can($cap)) {
+						return $k;
+					}
+				}
 			}
 		}
+		return 'subscriber'; // fallback
+	}
 
-		/* preselection
 
-		   admin:        [X] admins  [X] editors  [X] authors  [X] contributors  [ ] subscribers
-		   editor:       [ ] admins  [X] editors  [X] authors  [X] contributors  [ ] subscribers
-		   author:       [ ] admins  [X] editors  [X] authors  [ ] contributors  [ ] subscribers
-		   contributor:  [ ] admins  [X] editors  [ ] authors  [ ] contributors  [ ] subscribers
-		   subscriber:   [X] admins  [ ] editors  [ ] authors  [ ] contributors  [ ] subscribers
-		*/
 
-		$preselection = '';
-		if ($current_user->user_level >= 8 && $current_user->user_level <= 10) {
-			// is admin
-			$preselection = '"true", "true", "true", "true", "false"';
+	/**
+	 * gets display name of role
+	 */
+	function get_display_name_of_role($role) {
+		$roles = get_option('wp_user_roles');
+		$displayName = $roles[$role]['name'];
+		if (!empty($displayName)) {
+			return sanitize_text_field($displayName); // sanatize. you never know.
 		}
-		if ($current_user->user_level >= 5 && $current_user->user_level <= 7) {
-			// is editor
-			$tempadmins = '"false"';
-			if (count($editors) < 1) $tempadmins = '"true"'; // no editors? select admins			
-			$preselection = $tempadmins.', "true", "true", "true", "false"';
-		}
-		if ($current_user->user_level >= 2 && $current_user->user_level <= 4) {
-			// is author
-			$tempadmins = '"false"';
-			if (count($editors) < 1) $tempadmins = '"true"'; // no editors? select admins
-			$preselection = $tempadmins.', "true", "true", "false", "false"';
-		}
-		if ($current_user->user_level == 1) {
-			// is contributor
-			$tempadmins = '"false"';
-			if (count($editors) < 1) $tempadmins = '"true"'; // no editors? select admins
-			$preselection = $tempadmins.', "true", "false", "false", "false"';
-		}
-		if ($current_user->user_level == 0) {
-			// is subscriber
-			$preselection = '"true", "false", "false", "false", "false"';
-		}
+		return $role; // fallback
+	}
 
-		/* check i18n */
 
-		if (function_exists('_x')) {
-			// wp 2.8+
-			$i18n_administrator = _x('Administrator', 'User role');
-			$i18n_editor        = _x('Editor', 'User role');
-			$i18n_author        = _x('Author', 'User role');
-			$i18n_contributor   = _x('Contributor', 'User role');
-			$i18n_subscriber    = _x('Subscriber', 'User role');
-		}
-		else {
-			// wp < 2.8
-			$i18n_administrator = __('Administrator|User role');
-			$i18n_editor        = __('Editor|User role');
-			$i18n_author        = __('Author|User role');
-			$i18n_contributor   = __('Contributor|User role');
-			$i18n_subscriber    = __('Subscriber|User role');
-			if (strpos(__('Administrator|User role'), 'User role')) {
-				// no i18n -> use english user definitions
-				$i18n_administrator = 'Administrator';
-				$i18n_editor        = 'Editor';
-				$i18n_author        = 'Author';
-				$i18n_contributor   = 'Contributor';
-				$i18n_subscriber    = 'Subscriber';
+
+	/**
+	 * mailtostaff
+	 */
+	function mailtostaff($mode) {
+
+		// get WP users
+		$args = array(
+		  'exclude' => array(get_current_user_id()), // exclude current user
+			'orderby' => 'email',
+			'order'   => 'ASC'
+		);
+		$users = get_users($args); // since WP 3.1.0
+
+
+		// set up an email list array with WP users
+		// structure: $emailList[$defaultRole][$role][$email];
+		$emailList = array();
+		foreach ($users as $user) {
+			$user = new WP_User($user->ID); // don't use get_user_by() due to compatibility reasons
+			$defaultRole = $role = $email = false; // init
+			$defaultRole = get_default_role_for_user($user); // default role
+			$email = $user->user_email; // email
+			foreach ($user->roles as $role) {
+				$emailList[$defaultRole][$role][] = $email; // add
 			}
 		}
 
-		/* build HTML */
 
-		$output     = '';
-		$html       = '';
-		$vars       = '';
-		$numpeople  = count($admins)+count($editors)+count($authors)+count($contributors)+count($subscribers);
+		// filter userlist based on current user's (default) role
+		// subscribers can address admins only. contributors can address editors and admins.
+		// authors can address authors, editors and admins. editors and admins can address all users
+		// hint: custom roles have been merged with default roles based on typical capabilities
+		$currentUserRole = get_default_role_for_user();
+		if ($currentUserRole == 'subscriber') {
+			unset ($emailList['subscriber'], $emailList['contributor'], $emailList['author'], $emailList['editor']);
+		}
+		if ($currentUserRole == 'contributor') {
+			unset ($emailList['subscriber'], $emailList['contributor'], $emailList['author']);
+		}
+		if ($currentUserRole == 'author') {
+			unset ($emailList['subscriber'], $emailList['contributor']);
+		}
 
-		if (count($admins) > 0) {
-			$html.= ' <label style=\"margin-right:10px;white-space:nowrap;\"><input style=\"vertical-align: baseline;\" id=\"mailto1\" onclick=\"toggle()\" type=\"checkbox\" name=\"chk1\" value=\"admins\" /> '.$i18n_administrator.' ('.count($admins).')<\/label>';
-			$vars.= 'admins = new Array("'.implode("\",\"", $admins).'"); ';
-		}
-		if (count($editors) > 0) {
-			$html.= ' <label style=\"margin-right:10px;white-space:nowrap;\"><input style=\"vertical-align: baseline;\" id=\"mailto2\" onclick=\"toggle()\" type=\"checkbox\" name=\"chk2\" value=\"editors\" /> '.$i18n_editor.' ('.count($editors).')<\/label>';
-			$vars.= 'editors = new Array("'.implode("\",\"", $editors).'"); ';
-		}
-		if (count($authors) > 0) {
-			$html.= ' <label style=\"margin-right:10px;white-space:nowrap;\"><input style=\"vertical-align: baseline;\" id=\"mailto3\" onclick=\"toggle()\" type=\"checkbox\" name=\"chk3\" value=\"authors\" /> '.$i18n_author.' ('.count($authors).')<\/label>';
-			$vars.= 'authors = new Array("'.implode("\",\"", $authors).'"); ';
-		}
-		if (count($contributors) > 0) {
-			$html.= ' <label style=\"margin-right:10px;white-space:nowrap;\"><input style=\"vertical-align: baseline;\" id=\"mailto4\" onclick=\"toggle()\" type=\"checkbox\" name=\"chk4\" value=\"contributors\" /> '.$i18n_contributor.' ('.count($contributors).')<\/label>';
-			$vars.= 'contributors = new Array("'.implode("\",\"", $contributors).'"); ';
-		}
-		if (count($subscribers) > 0) {
-			$html.= ' <label style=\"margin-right:10px;white-space:nowrap;\"><input style=\"vertical-align: baseline;\" id=\"mailto5\" onclick=\"toggle()\" type=\"checkbox\" name=\"chk5\" value=\"subscribers\" /> '.$i18n_subscriber.' ('.count($subscribers).')<\/label>';
-			$vars.= 'subscribers = new Array("'.implode("\",\"", $subscribers).'"); ';
-		}
-		if ($html != '') {
 
-      // wrapper styles
-			$divstyle    = 'background:#f9f9f9; border-top:1px solid #ddd; border-bottom:1px solid #ddd; margin: 10px -9px; padding:5px 9px;';
-      if ($mode == 'widget') {
-        // do not use any wrapper styles if placed in a widget
-        unset($divstyle);
-      }
-			$buttonclass = 'button rbutton';
-			// styles for WP < 2.7
-			if ($wp_version < "2.7") {
-				$divstyle    = 'background:#f9f9f9; border-top:1px solid #ddd; border-bottom:1px solid #ddd; margin: 10px 0; padding:2px 0;';
-				$buttonclass = '';
+		// get all roles, skip empty
+		$allRoles = array();
+		foreach ($emailList as $v1) {
+			foreach ($v1 as $k2 => $v2) {
+				if (!in_array($k2, $allRoles) && count($v2) > 0) {
+					$allRoles[] = $k2;
+				}
 			}
-			$html = '<div id=\"mailtostaff\" style=\"'.$divstyle.'\"><table cellspacing=\"0\" cellpadding=\"0\" border=\"0\"><tr><td style=\"white-space:normal;border:0;\"><p style=\"margin:0;\"><span style=\"margin-right:5px;\"><strong><img style=\"vertical-align:middle;\" src=\"/'.PLUGINDIR.'/'.dirname(plugin_basename(__FILE__)).'/'.'group.png\" alt=\"\" /> '.__('E-mail').'<\/strong>: <\/span>'.$html.'<\/p><\/td><td style=\"border:0;\"><a id=\"mailtolink\" style=\"position:relative;top:0;margin-left:10px;\" href=\"#\" class=\"'.$buttonclass.'\"><img style=\"vertical-align:bottom;\" src=\"/'.PLUGINDIR.'/'.dirname(plugin_basename(__FILE__)).'/'.'email_go.png\" alt=\"\" />&nbsp;<strong id=\"mailtocounter\">0<\/strong><\/a><\/td><\/tr><\/table><\/div>';
 		}
 
-		/* build output */
 
-		if ($html != '') {
-			$output = '
+		// sort all roles: default roles first, custom roles afterwards (A-Z)
+		asort($allRoles); // sort A-Z
+		$sort = array('subscriber', 'contributor', 'author', 'editor', 'administrator'); // reverse WP roles
+		foreach ($sort as $v) {
+			$k = array_search($v, $allRoles);
+			if ($k !== false) {
+				unset ($allRoles[$k]); // remove from array
+				array_unshift($allRoles, $v); // prepend saved to the beginning
+			}
+		}
 
-			<script type="text/javascript">
 
-				document.write("'.$html.'");
+		// setup mailto list and mailto link (used for non-JS environment only)
+		global $current_user;
+		$mailtoList = array();
+		foreach ($emailList as $v1) {
+			foreach ($v1 as $v2) {
+				foreach ($v2 as $v3) {
+					$mailtoList[] = sanitize_email($v3);
+				}
+			}
+		}
+		$mailtoList = array_unique($mailtoList); // remove duplicate values
+		$mailtoLink = 'mailto:'.$current_user->user_email.'?bcc='.implode(",", $mailtoList); // mailto link
 
-				var admins = new Array(), editors = new Array(), authors = new Array(), contributors = new Array(), subscribers = new Array();
-				'.$vars.'
-				var currentuser = "'.$current_user->user_email.'";
-				var preselection = new Array("", '.$preselection.');
 
-				function removeselfanddoubles(a) {
-					temp = new Array();
-					for(i=0;i<a.length;i++) {
-						if(!contains(temp, a[i]) && a[i]!=currentuser) {
-							temp.length+=1;
-							temp[temp.length-1]=a[i];
+		// build selects for each custom role
+		$htmlSelects = '';
+		foreach ($allRoles as $customRole) {
+			$tempEmails = array();
+			$tempRoles = array();
+			foreach ($emailList as $role => $roleItems) {
+				if (is_array($roleItems) && count($roleItems) > 0) {
+					foreach ($roleItems as $k => $v) {
+						if ($k === $customRole && is_array($roleItems) && count($roleItems) > 0) {
+							$tempRoles[] = $role;
+							foreach ($v as $email) {
+								$tempEmails[] = $email;
+							}
 						}
 					}
-					return temp;
 				}
-				function contains(a, e) {
-					for(j=0;j<a.length;j++) if(a[j]==e) return true;
-					return false;
-				}
-				function readCookie(name) {
-					var nameEQ = name + "=";
-					var ca = document.cookie.split(";");
-					for(var i=0;i < ca.length;i++) {
-						var c = ca[i];
-						while (c.charAt(0)==" ") c = c.substring(1,c.length);
-						if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-					}
-					return null;
-				}
-				function toggle() {
-					var select = new Array();
-					for (var x=1; x<=5; x++) {
-						select[x] = (document.getElementById("mailto"+x) && document.getElementById("mailto"+x).checked == true) ? "true" : "false";
-					}
-					document.cookie = "mailtostaff="+select; 
+			}
+			if (count($tempEmails) > 0) {
+				$htmlSelects.= PHP_EOL.'
+					<label class="mailtostaff__select-item">
+						<input type="checkbox" class="mailtostaff__select-input" checked="checked" data-mailtostaff-custom-role="'.esc_attr($customRole).'" data-mailtostaff-wp-roles="'.esc_attr(implode(",", $tempRoles)).'" data-mailtostaff-emails="'.esc_attr(implode(",", $tempEmails)).'">
+						<span class="mailtostaff__select-title">'._x(get_display_name_of_role($customRole), 'User role').'</span>
+						<span class="mailtostaff__select-count">('.count($tempEmails).')</span>
+					</label>'.PHP_EOL;
+			}
+		}
 
-					var mailtolink = "#";
-					var recipients = new Array();
-					if (admins.length > 0       && select[1] == "true") { recipients = recipients.concat(admins); }
-					if (editors.length > 0      && select[2] == "true") { recipients = recipients.concat(editors); }
-					if (authors.length > 0      && select[3] == "true") { recipients = recipients.concat(authors); }
-					if (contributors.length > 0 && select[4] == "true") { recipients = recipients.concat(contributors); }
-					if (subscribers.length > 0  && select[5] == "true") { recipients = recipients.concat(subscribers); }
-					recipients = removeselfanddoubles(recipients);
+		// build html
+		$html = PHP_EOL.'
+				<div class="mailtostaff" id="mailtostaff" data-mailtostaff-current-user-address="'.$current_user->user_email.'">
+					<div class="mailtostaff__wrapper">
+						<div class="mailtostaff__cell mailtostaff__brand">
+							<i class="mailtostaff__icon mailtostaff__icon-users"></i>
+						</div>
+						<div class="mailtostaff__cell mailtostaff__selects hide-if-no-js">
+							'.$htmlSelects.'
+						</div>
+						<div class="mailtostaff__cell mailtostaff__action">
+							<a class="button mailtostaff__mailto-link" href="'.$mailtoLink.'"><i class="mailtostaff__icon mailtostaff__icon-mail"></i> <span class="mailtostaff__item-count">'.count($mailtoList).'</span></a>
+						</div>
+					</div>
+				</div>'.PHP_EOL;
 
-					if (recipients.length > 0) {
-						if (document.getElementById("mailto5") && document.getElementById("mailto5").checked == true) {
-							mailtolink = "mailto:" + currentuser + "?bcc=" + recipients.join(",");
+		// output
+		echo $html;
+	}
+
+
+
+	/**
+	 * mailtostaff resources
+	 */
+	function add_mailtostaff_resources() {
+
+		// CSS
+		?>
+			<style>
+				@font-face {
+					font-family: "mailtostaff";
+					src:url("<?php echo plugins_url('fonts/mailtostaff.eot',             __FILE__ ); ?>");
+					src:url("<?php echo plugins_url('fonts/mailtostaff.eot?#iefix',      __FILE__ ); ?>") format("embedded-opentype"),
+						  url("<?php echo plugins_url('fonts/mailtostaff.woff',            __FILE__ ); ?>") format("woff"),
+							url("<?php echo plugins_url('fonts/mailtostaff.ttf',             __FILE__ ); ?>") format("truetype"),
+							url("<?php echo plugins_url('fonts/mailtostaff.svg#mailtostaff', __FILE__ ); ?>") format("svg");
+					font-weight: normal;
+					font-style: normal;
+				}
+				.mailtostaff__icon {
+					font-family: "mailtostaff";
+					speak: none;
+					font-style: normal;
+					font-weight: normal;
+					font-variant: normal;
+					text-transform: none;
+					line-height: 1;
+					-webkit-font-smoothing: antialiased;
+					-moz-osx-font-smoothing: grayscale;
+				}
+				.mailtostaff__icon-mail:before {
+					content: "\e604";
+				}
+				.mailtostaff__icon-users:before {
+					content: "\e60e";
+				}
+				.mailtostaff__icon {
+					font-size: 21px;
+					display: inline-block;
+					vertical-align: middle;
+				}
+				.mailtostaff__wrapper {
+					display: table;
+				}
+				.mailtostaff__cell {
+					display: table-cell;
+					vertical-align: top;
+				}
+				.mailtostaff__brand {
+					padding: 2px 10px 0 0;
+				}
+				.mailtostaff__selects {
+					padding: 3px 5px 0 0;
+				}
+				.mailtostaff__select-item {
+					white-space: nowrap;
+					margin-right: 13px;
+				}
+				.mailtostaff__select-count {
+					padding-left: 2px;
+					color: #888;
+					font-size: 0.9em;
+				}
+				.mailtostaff__action .mailtostaff__icon {
+					position: relative;
+					top: -1px;
+				}
+			</style>
+		<?php
+
+		// CSS for WP < 3.8
+		if (get_bloginfo('version') < 3.8) { ?>
+			<style>
+				#mailtostaff .mailtostaff__select-input {
+					vertical-align: baseline;
+				}
+			</style>
+		<?php }
+
+
+		// JS
+		?>
+			<script>
+				jQuery(function($) {
+
+					var
+						mailtoStaff = $('#mailtostaff'),
+						currentUserMail = mailtoStaff.data('mailtostaff-current-user-address'),
+						mailtoLink = $('.mailtostaff__mailto-link', mailtoStaff),
+						mailtoLinkValue,
+						mailtoLinkCount = $('.mailtostaff__item-count', mailtoLink),
+						emailList = [],
+						selectedItems,
+						selection = []
+					;
+
+	        function getCookie(key) {
+						var keyValue = document.cookie.match('(^|;) ?' + key + '=([^;]*)(;|$)');
+						return keyValue ? keyValue[2] : null;
+	        }
+
+					function updateMailtoLink(mode) {
+
+						// update selection from cookie
+						if (mode === 'init') {
+							var cookie = getCookie('wordpress_mailtostaff');
+							if (cookie && typeof cookie === 'string') {
+								cookie = cookie.split(',');
+								mailtoStaff
+									.find('.mailtostaff__select-input')
+									.prop('checked', false)
+									.filter(function(i) {
+	  								return $.inArray($(this).data('mailtostaff-custom-role'), cookie) >= 0;
+									})
+									.prop('checked', true);
+							}
+						}
+
+						// get selected items, generate email list
+						emailList = [];
+						selectedItems = mailtoStaff.find('.mailtostaff__select-input:checked');
+						selectedItems.each(function(i) {
+							var data = ($(this).data('mailtostaff-emails')).split(',');
+							$.each(data, function(i, v) {
+								emailList.push(v);
+							});
+						});
+
+						// get custom roles of selected items
+						// check for subscribers in wp roles
+						selection = [];
+						hasSubscribers = false;
+						$.each(selectedItems, function(i, v) {
+							selection.push($(v).data('mailtostaff-custom-role'));
+							if ($.inArray('subscriber', ($(v).data('mailtostaff-wp-roles')).split(',')) >= 0) {
+								hasSubscribers = true;
+							}
+						});
+
+						// remove duplicate emails
+						emailList = jQuery.unique(emailList);
+
+						// set up mailto link
+						mailtoLinkValue = '#';
+						if (emailList.length > 0) {
+							if (hasSubscribers) {
+								// use BCC for privacy reasons if email list contains subscribers
+								mailtoLinkValue = 'mailto:' + currentUserMail + '?bcc=' + emailList;
+							}
+							else {
+								mailtoLinkValue = 'mailto:' + emailList;
+							}
+						}
+						mailtoLink.attr('href', mailtoLinkValue);
+
+						// count emails, set mailto link state
+						mailtoLinkCount.html(emailList.length);
+						if (emailList.length < 1) {
+							mailtoLink.addClass('button-disabled');
 						}
 						else {
-							mailtolink = "mailto:" + recipients.join(",");
+							mailtoLink.removeClass('button-disabled');
 						}
-						document.getElementById("mailtolink").style.visibility = "visible";
+
+						// save user selection to cookie
+						if (mode !== 'init') {
+							var expires = new Date();
+							expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000));
+							document.cookie = 'wordpress_mailtostaff=' + selection.join(',') + ';expires=' + expires.toUTCString();
+						}
 					}
-					else {
-						document.getElementById("mailtolink").style.visibility = "hidden";
-					}
-					document.getElementById("mailtolink").href = mailtolink;
-					document.getElementById("mailtocounter").innerHTML = recipients.length;
-				}
 
-				var select = readCookie("mailtostaff");
-				select = (select) ? select.split(",") : preselection;
-				for (var x=1; x<=5; x++) {
-					if (document.getElementById("mailto" + x) && select[x] == "true") document.getElementById("mailto" + x).checked = true;
-				}
-
-				window.setTimeout("toggle()", 100);
-
-			</script>';
-		}
-
-		/* output */
-
-		echo $output;
+					updateMailtoLink('init'); // init
+					mailtoStaff.delegate('.mailtostaff__select-input', 'change', updateMailtoLink); // don't use .on() due to compatibility reasons
+				});
+			</script>
+		<?php
 	}
 ?>
