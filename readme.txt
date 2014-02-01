@@ -5,39 +5,34 @@ Requires at least: 3.1
 Tested up to: 3.8
 Stable tag: 3.0
 
-For multi-author blogs: The Plugin generates a mailto link on the dashboard.
+Plugs a mailto link on your dashboard. Enables people to send e-mails based on user roles.
 
 == Description ==
 
-Multi-author blogs: Plugin generates simple mailto links on the dashboard referring to all registered users. Quite handy way of internal staff communication.
+Plugs a mailto link on your dashboard. Enables people to send e-mails based on user roles.
 
 **Features:**
 
-* Mailto links can address any of group admins, editors, authors, contributors and subscribers based on current user's role.
-* User roles: Subscribers can address admins only. Contributors can address editors and admins. Authors can address authors, editors and admins. Editors and admins can address all users.
-* Duplicate mail addys get filtered out.
-* BCC mail if recipients contain subscribers (due to privacy concerns!).
-* Multi-language, see [notes](http://wordpress.org/extend/plugins/mailtostaff/other_notes/).
-
-The plugin needs JavaScript enabled to function.
-
-== Installation ==
-
-1. Upload the mailto-staff folder to the `/wp-content/plugins/` directory.
-2. Activate the plugin through the 'Plugins' menu in WordPress.
+* Recipients get selected by user roles (e.g. editors, contributors). Plugin supports custom roles now.
+* Capabilities: Subscribers can address admins only. Contributors can address editors and admins. Authors can address authors, editors and admins. Editors and admins can address all users.
+* Filters duplicate e-mail addresses.
+* BCC mail if recipients contain subscribers (for privacy reasons).
+* Multi-language.
 
 == Screenshots ==
 
-1. WP 2.7 (WP 2.8 - 3.2 respectively)
-2. WP 2.6
-3. Default mail
-4. BCC mail if recipients contain subscribers (-> privacy!)
+1. mailto:staff on WordPress 3.8 dashboard.
+2. Plugin supports not only default user roles but custom roles now.
+3. Mailto link with your staff being addressed directly.
+4. BCC mail if recipients contain subscribers. Privacy FTW!
 
 == Changelog ==
 
-= 2.5 (12-30-2013) =
+= 3.0 (02-01-2014) =
+* Supports custom roles now.
 * WP 3.8 compatibility
-* some cleanup and refactoring
+* Doesn't use the activity widget (»Right now«) any longer but comes with a shiny new own widget now.
+* New style, new icons, new code.
 
 = 2.4.2 (12-30-2012) =
 * WP 3.5 compatibility
@@ -61,16 +56,3 @@ The plugin needs JavaScript enabled to function.
 
 = 2.1 (06-15-2009) =
 * improvement: select admins if editors are missing
-
-== Localization (L10n) ==
-
-Plugin makes use of WordPress' language files and therefore doesn't need separate localization.
-
-== Credits ==
-
-Plugin uses icon stuff from famfamfam's [silk](http://www.famfamfam.com/lab/icons/silk/) which is licensed under a Creative Commons Attribution 2.5 License. Thank you, Mark!
-
-== Alternative Plugins? ==
-
-Have a look at [Email Users](http://wordpress.org/extend/plugins/email-users/) or [User Messages](http://wordpress.org/extend/plugins/user-messages/) if you're looking for an internal messaging system instead of simple mailto links.
-

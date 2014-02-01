@@ -87,7 +87,7 @@ Author URI: http://decaf.de
 
 		// get WP users
 		$args = array(
-		  'exclude' => array(get_current_user_id()), // exclude current user
+			'exclude' => array(get_current_user_id()), // exclude current user
 			'orderby' => 'email',
 			'order'   => 'ASC'
 		);
@@ -222,7 +222,7 @@ Author URI: http://decaf.de
 					font-family: "mailtostaff";
 					src:url("<?php echo plugins_url('fonts/mailtostaff.eot',             __FILE__ ); ?>");
 					src:url("<?php echo plugins_url('fonts/mailtostaff.eot?#iefix',      __FILE__ ); ?>") format("embedded-opentype"),
-						  url("<?php echo plugins_url('fonts/mailtostaff.woff',            __FILE__ ); ?>") format("woff"),
+							url("<?php echo plugins_url('fonts/mailtostaff.woff',            __FILE__ ); ?>") format("woff"),
 							url("<?php echo plugins_url('fonts/mailtostaff.ttf',             __FILE__ ); ?>") format("truetype"),
 							url("<?php echo plugins_url('fonts/mailtostaff.svg#mailtostaff', __FILE__ ); ?>") format("svg");
 					font-weight: normal;
@@ -305,10 +305,10 @@ Author URI: http://decaf.de
 						selection = []
 					;
 
-	        function getCookie(key) {
+					function getCookie(key) {
 						var keyValue = document.cookie.match('(^|;) ?' + key + '=([^;]*)(;|$)');
 						return keyValue ? keyValue[2] : null;
-	        }
+					}
 
 					function updateMailtoLink(mode) {
 
@@ -321,7 +321,7 @@ Author URI: http://decaf.de
 									.find('.mailtostaff__select-input')
 									.prop('checked', false)
 									.filter(function(i) {
-	  								return $.inArray($(this).data('mailtostaff-custom-role'), cookie) >= 0;
+										return $.inArray($(this).data('mailtostaff-custom-role'), cookie) >= 0;
 									})
 									.prop('checked', true);
 							}
