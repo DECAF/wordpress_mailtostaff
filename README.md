@@ -1,3 +1,16 @@
+--------------------------------------------------
+
+**This project will no longer be maintained.**  
+If you'd like to take it over and continue development, feel free to [contact us](https://twitter.com/_DECAF)!
+
+**Dieses Projekt wird nicht weiter gepflegt.**  
+Falls du es übernehmen und weiterentwickeln möchtest, [gib uns gerne bescheid](https://twitter.com/_DECAF)!
+
+--------------------------------------------------
+
+.  
+
+
 # mailto:staff
 
 __Plugs a mailto link on your dashboard. Enables people to send e-mails based on user roles.__  
