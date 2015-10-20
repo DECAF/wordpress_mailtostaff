@@ -31,37 +31,28 @@ Author URI: http://decaf.de
 
 
 	/**
-	 * gets default role for given user based on typical capabilities (see https://core.trac.wordpress.org/ticket/22624).
+	 * gets default role for given user.
 	 * default roles are 'administrator', 'editor', 'author', 'contributor' and 'subscriber'.
 	 */
 	function get_default_role_for_user($user = null) {
 
-		// typical caps
-		$capabilities = array(
-			'administrator' => array('edit_users', 'remove_users'),
-			'editor'        => array('edit_others_posts', 'edit_private_posts'),
-			'author'        => array('publish_posts', 'delete_published_posts'),
-			'contributor'   => array('edit_posts', 'delete_posts')
-		);
+        $roles = array('administrator', 'editor', 'author', 'contributor');
 
-		// loop through caps, find out user role
-		foreach ($capabilities as $k => $role) {
-			foreach ($role as $cap) {
-				if ($user) {
-					// use given user
-					if (user_can($user, $cap)) {
-						return $k;
-					}
-				}
-				else {
-					// use current user
-					if (current_user_can($cap)) {
-						return $k;
-					}
-				}
-			}
-		}
-		return 'subscriber'; // fallback
+        foreach ($roles as $role) {
+            if ($user) {
+                // use given user
+                if (user_can($user, $role)) {
+                    return $role;
+                }
+            }
+            else {
+                // use current user
+                if (current_user_can($role)) {
+                    return $role;
+                }
+            }
+        }
+        return 'subscriber'; // fallback
 	}
 
 
