@@ -2,8 +2,8 @@
 Contributors: decafmedia
 Tags: users, email, mail, dashboard, team, authors
 Requires at least: 3.1
-Tested up to: 3.8
-Stable tag: 3.0
+Tested up to: 4.3.1
+Stable tag: 3.1
 
 Plugs a mailto link on your dashboard. Enables people to send e-mails based on user roles.
 
@@ -27,6 +27,11 @@ Plugs a mailto link on your dashboard. Enables people to send e-mails based on u
 4. BCC mail if recipients contain subscribers. Privacy FTW!
 
 == Changelog ==
+
+= 3.1 (10-20-2015) =
+* WP 4.3 compatibility
+* Improve performance of user role checks by using role names instead of caps.
+* Bugfix: remove duplicate emails
 
 = 3.0 (02-01-2014) =
 * Supports custom roles now.

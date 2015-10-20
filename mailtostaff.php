@@ -3,7 +3,7 @@
 Plugin Name: mailto:staff
 Plugin URI: http://decaf.de/mailto-staff/
 Description: Generates mailto link on the dashboard referring to all user groups of the blog. Quite handy way of internal staff communication on multi-author/team blogs.
-Version: 3.0
+Version: 3.1
 Author: DECAF
 Author URI: http://decaf.de
 
