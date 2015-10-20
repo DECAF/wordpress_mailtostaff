@@ -301,6 +301,12 @@ Author URI: http://decaf.de
 						return keyValue ? keyValue[2] : null;
 					}
 
+                    function removeDuplicates(array) {
+                        return $.grep(array, function(el, index) {
+                            return index === $.inArray(el, array);
+                        });
+                    }
+
 					function updateMailtoLink(mode) {
 
 						// update selection from cookie
@@ -340,7 +346,7 @@ Author URI: http://decaf.de
 						});
 
 						// remove duplicate emails
-						emailList = jQuery.unique(emailList);
+                        emailList = removeDuplicates(emailList);
 
 						// set up mailto link
 						mailtoLinkValue = '#';
